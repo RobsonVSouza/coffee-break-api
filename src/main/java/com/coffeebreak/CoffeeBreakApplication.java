@@ -1,4 +1,4 @@
-package com.coffee_break;
+package com.coffeebreak;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
