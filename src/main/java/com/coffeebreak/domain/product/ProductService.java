@@ -16,47 +16,26 @@ public class ProductService {
     @Autowired
     ProductRepository productRepository;
 
+
+
     public Product save(ProductDTO dto) {
         if (dto.name() != null && productRepository.findByName(dto.name()).isPresent()) {
             throw new ProductNotFoundException("Produto já foi cadastrado");
         }
-
-        Product product = new Product(
-                null,
-                dto.name(),
-                dto.description(),
-                dto.category(),
-                dto.pictures(),
-                dto.price()
-        );
-
-        return productRepository.save(product);
+        Product productData = new Product(dto);
+        return productRepository.save(productData);
     }
 
-    public List <ProductDTO> findAll(){
-        List <Product> products = productRepository.findAll();
-        return products.stream()
-                .map(product -> new ProductDTO(
-                        product.getId(),
-                        product.getName(),
-                        product.getDescription(),
-                        product.getCategory(),
-                        product.getPictures(),
-                        product.getPrice()
-                ))
-                .collect(Collectors.toList());
+    public List<ProductDTO> findAll() {
+        return productRepository.findAll()
+                .stream()
+                .map(ProductDTO::new)
+                .toList();
     }
 
     public ProductDTO findById(Long id){
         return productRepository.findById(id)
-                .map(product -> new ProductDTO(
-                        product.getId(),
-                        product.getName(),
-                        product.getDescription(),
-                        product.getCategory(),
-                        product.getPictures(),
-                        product.getPrice()
-                ))
+                .map(ProductDTO::new)
                 .orElseThrow(() -> new ProductNotFoundException("Produto com Id " + id + " não encontrado"));
     }
 
@@ -65,23 +44,11 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException("Produto com Id " + id + " não encontrado"));
 
         BeanUtils.copyProperties(productDTO, existingProduct, "id");
-
-        Product updatedProduct = productRepository.save(existingProduct);
-
-        return new ProductDTO(
-                updatedProduct.getId(),
-                updatedProduct.getName(),
-                updatedProduct.getDescription(),
-                updatedProduct.getCategory(),
-                updatedProduct.getPictures(),
-                updatedProduct.getPrice()
-        );
+        return new ProductDTO(productRepository.save(existingProduct));
     }
 
     public void delete(Long id){
-        if (!productRepository.existsById(id)){
-            throw new ProductNotFoundException("Produto não encontrado para deleção");
-        }
+        findById(id);
         productRepository.deleteById(id);
     }
 
