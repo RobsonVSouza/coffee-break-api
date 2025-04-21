@@ -1,24 +1,32 @@
 package com.coffeebreak.domain.table;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.coffeebreak.domain.table.dto.TicketDTO;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @AllArgsConstructor
 @Data
-
+@NoArgsConstructor
 public class Ticket {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private TicketStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TicketStatus ticketStatus;
     private String startService;
     private String endService;
+
+    public Ticket(TicketDTO dto){
+        this.id = dto.id();
+        this.ticketStatus = dto.ticketStatus();
+        this.startService = dto.startService();
+        this.endService = dto.endService();
+    }
 
 }
