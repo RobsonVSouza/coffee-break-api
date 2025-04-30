@@ -51,13 +51,21 @@ public class OrdersService {
 
     public OrdesDTO update(Long id, OrdesDTO dto){
         Ticket ticket = ticketRepository.findById(dto.ticketId())
-                .orElseThrow(() -> new RuntimeException("Ticket não encontrado"));
+                .orElseThrow(() -> new ProductNotFoundException("Ticket não encontrado"));
 
         Product product = productRepository.findById(dto.productId())
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+                .orElseThrow(() -> new ProductNotFoundException("Produto não encontrado"));
 
-        Orders order = new Orders(dto, ticket, product);
-        return new OrdesDTO(ordesRepository.save(order));
+        Orders existOrders = ordesRepository.findById(id)
+                        .orElseThrow(() -> new ProductNotFoundException("Comanda não encontrada"));
+
+        BeanUtils.copyProperties(dto, existOrders, "id");
+        return new OrdesDTO(ordesRepository.save(existOrders));
+    }
+
+    public void delete(Long id){
+        findById(id);
+        ordesRepository.deleteById(id);
     }
 
 }

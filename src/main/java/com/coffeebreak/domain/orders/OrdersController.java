@@ -40,4 +40,10 @@ public class OrdersController {
         OrdesDTO update = ordersService.update(id, dto);
         return ResponseEntity.ok(update);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity <Void> delete(@PathVariable Long id){
+        ordersService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
