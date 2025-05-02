@@ -2,7 +2,7 @@ package com.coffeebreak.domain.orders;
 
 import com.coffeebreak.domain.orders.dto.OrdesDTO;
 import com.coffeebreak.domain.product.Product;
-import com.coffeebreak.domain.table.Ticket;
+import com.coffeebreak.domain.ticket.Ticket;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

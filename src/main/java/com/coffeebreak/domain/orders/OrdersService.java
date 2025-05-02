@@ -3,15 +3,15 @@ package com.coffeebreak.domain.orders;
 import com.coffeebreak.domain.orders.dto.OrdesDTO;
 import com.coffeebreak.domain.product.Product;
 import com.coffeebreak.domain.product.ProductRepository;
-import com.coffeebreak.domain.table.Ticket;
-import com.coffeebreak.domain.table.TicketRepository;
+import com.coffeebreak.domain.ticket.Ticket;
+import com.coffeebreak.domain.ticket.TicketRepository;
+import com.coffeebreak.domain.ticket.TicketStatus;
 import com.coffeebreak.exception.ProductNotFoundException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class OrdersService {
@@ -27,10 +27,14 @@ public class OrdersService {
 
     public Orders save(OrdesDTO dto) {
         Ticket ticket = ticketRepository.findById(dto.ticketId())
-                .orElseThrow(() -> new RuntimeException("Ticket não encontrado"));
+                .orElseThrow(() -> new ProductNotFoundException("Ticket não encontrado"));
+
+        if (ticket.getTicketStatus() == TicketStatus.AVAILABLE){
+            throw new ProductNotFoundException("Mesa precisa estar disponivel");
+        }
 
         Product product = productRepository.findById(dto.productId())
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+                .orElseThrow(() -> new ProductNotFoundException("Produto não encontrado"));
 
         Orders order = new Orders(dto, ticket, product);
         return ordesRepository.save(order);

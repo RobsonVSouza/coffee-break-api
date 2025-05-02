@@ -1,4 +1,4 @@
-package com.coffeebreak.domain.table;
+package com.coffeebreak.domain.ticket;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,6 +1,6 @@
-package com.coffeebreak.domain.table;
+package com.coffeebreak.domain.ticket;
 
-import com.coffeebreak.domain.table.dto.TicketDTO;
+import com.coffeebreak.domain.ticket.dto.TicketDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,5 +39,11 @@ public class TicketController {
     public ResponseEntity<TicketDTO> updateTicket(@PathVariable Long id, @RequestBody TicketDTO ticketDTO){
         TicketDTO update = ticketService.update(id, ticketDTO);
         return ResponseEntity.ok(update);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id){
+        ticketService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
