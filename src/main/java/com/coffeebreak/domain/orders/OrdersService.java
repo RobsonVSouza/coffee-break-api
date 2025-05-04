@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class OrdersService {
@@ -30,14 +31,21 @@ public class OrdersService {
                 .orElseThrow(() -> new ProductNotFoundException("Ticket não encontrado"));
 
         if (ticket.getTicketStatus() == TicketStatus.AVAILABLE){
-            throw new ProductNotFoundException("Mesa precisa estar disponivel");
+            throw new ProductNotFoundException("Mesa precisa estar ocupada");
         }
-
         Product product = productRepository.findById(dto.productId())
                 .orElseThrow(() -> new ProductNotFoundException("Produto não encontrado"));
 
-        Orders order = new Orders(dto, ticket, product);
-        return ordesRepository.save(order);
+        Optional<Orders> optionalOrders = ordesRepository.findByTicketIdAndProductId(dto.ticketId(), dto.productId());
+
+        if (optionalOrders.isPresent()) {
+            Orders order = optionalOrders.get();
+            order.setAmount(order.getAmount() + dto.amount());
+            return ordesRepository.save(order);
+        } else {
+            Orders order = new Orders(dto, ticket, product);
+            return ordesRepository.save(order);
+        }
     }
 
     public List<OrdesDTO> findAll(){
