@@ -31,6 +31,7 @@ public class Product implements Serializable {
     @Column(nullable = false)
     private Category category;
 
+    @ElementCollection
     private List<String> pictures;
 
     private BigDecimal price;

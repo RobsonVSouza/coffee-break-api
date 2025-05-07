@@ -6,5 +6,5 @@ import java.util.Optional;
 
 public interface OrdesRepository extends JpaRepository <Orders, Long> {
 
-    Optional<Orders> findByTicketIdAndProductId(Long aLong, Long aLong1);
+    Optional<Orders> findByTicketId(Long aLong);
 }

@@ -8,6 +8,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
+import static com.coffeebreak.domain.orders.StatusOrders.ORDER_PLACED;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -21,24 +25,24 @@ public class Orders {
     @ManyToOne
     private Ticket ticket;
 
-    @ManyToOne
-    private Product product;
+    @ManyToMany
+    private List<Product> product;
 
-    private Long amount;
+    private List <Long> amount;
 
     private String observation;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StatusOrders statusOrders;
+    private StatusOrders statusOrders = ORDER_PLACED;
 
-    public Orders(OrdesDTO dto, Ticket ticket, Product product) {
+    public Orders(OrdesDTO dto, Ticket ticket, List <Product> product) {
         this.id = dto.id();
         this.ticket = ticket;
         this.product = product;
         this.amount = dto.amount();
         this.observation = dto.observation();
-        this.statusOrders = dto.statusOrders();
+        this.statusOrders = dto.statusOrders() != null ? dto.statusOrders() : ORDER_PLACED;
     }
 
 }

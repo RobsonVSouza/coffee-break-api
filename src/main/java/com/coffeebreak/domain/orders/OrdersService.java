@@ -3,10 +3,15 @@ package com.coffeebreak.domain.orders;
 import com.coffeebreak.domain.orders.dto.OrdesDTO;
 import com.coffeebreak.domain.product.Product;
 import com.coffeebreak.domain.product.ProductRepository;
+import com.coffeebreak.domain.product.ProductService;
+import com.coffeebreak.domain.product.dto.ProductDTO;
 import com.coffeebreak.domain.ticket.Ticket;
 import com.coffeebreak.domain.ticket.TicketRepository;
+import com.coffeebreak.domain.ticket.TicketService;
 import com.coffeebreak.domain.ticket.TicketStatus;
+import com.coffeebreak.domain.ticket.dto.TicketDTO;
 import com.coffeebreak.exception.ProductNotFoundException;
+import com.coffeebreak.exception.TicketException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,29 +26,54 @@ public class OrdersService {
     OrdesRepository ordesRepository;
 
     @Autowired
-    ProductRepository productRepository;
+    ProductService productService;
 
     @Autowired
-    TicketRepository ticketRepository   ;
+    TicketService ticketService   ;
 
     public Orders save(OrdesDTO dto) {
-        Ticket ticket = ticketRepository.findById(dto.ticketId())
-                .orElseThrow(() -> new ProductNotFoundException("Ticket não encontrado"));
+        TicketDTO ticketDto = ticketService.findById(dto.ticketId());
+        Ticket ticket = new Ticket(ticketDto);
 
-        if (ticket.getTicketStatus() == TicketStatus.AVAILABLE){
-            throw new ProductNotFoundException("Mesa precisa estar ocupada");
-        }
-        Product product = productRepository.findById(dto.productId())
-                .orElseThrow(() -> new ProductNotFoundException("Produto não encontrado"));
+        ticketService.verifyTableIsOccupied(ticketDto);
 
-        Optional<Orders> optionalOrders = ordesRepository.findByTicketIdAndProductId(dto.ticketId(), dto.productId());
+        List<Product> incomingProducts = dto.productIds().stream()
+                .map(productService::findById)
+                .map(Product::new)
+                .toList();
+
+        Optional<Orders> optionalOrders = ordesRepository.findByTicketId(dto.ticketId());
 
         if (optionalOrders.isPresent()) {
             Orders order = optionalOrders.get();
-            order.setAmount(order.getAmount() + dto.amount());
+
+
+            for (int i = 0; i < incomingProducts.size(); i++) {
+                Product incomingProduct = incomingProducts.get(i);
+                Long incomingQuantity = dto.amount().get(i);
+
+                int existingIndex = -1;
+                for (int j = 0; j < order.getProduct().size(); j++) {
+                    if (order.getProduct().get(j).getId().equals(incomingProduct.getId())) {
+                        existingIndex = j;
+                        break;
+                    }
+                }
+
+                if (existingIndex != -1) {
+
+                    Long updatedQuantity = order.getAmount().get(existingIndex) + incomingQuantity;
+                    order.getAmount().set(existingIndex, updatedQuantity);
+                } else {
+
+                    order.getProduct().add(incomingProduct);
+                    order.getAmount().add(incomingQuantity);
+                }
+            }
+
             return ordesRepository.save(order);
         } else {
-            Orders order = new Orders(dto, ticket, product);
+            Orders order = new Orders(dto, ticket, incomingProducts);
             return ordesRepository.save(order);
         }
     }
@@ -62,11 +92,12 @@ public class OrdersService {
     }
 
     public OrdesDTO update(Long id, OrdesDTO dto){
-        Ticket ticket = ticketRepository.findById(dto.ticketId())
-                .orElseThrow(() -> new ProductNotFoundException("Ticket não encontrado"));
+        TicketDTO ticket = ticketService.findById(dto.ticketId());
 
-        Product product = productRepository.findById(dto.productId())
-                .orElseThrow(() -> new ProductNotFoundException("Produto não encontrado"));
+        List<Product> products = dto.productIds().stream()
+                .map(productService::findById)
+                .map(Product::new)
+                .toList();
 
         Orders existOrders = ordesRepository.findById(id)
                         .orElseThrow(() -> new ProductNotFoundException("Comanda não encontrada"));
