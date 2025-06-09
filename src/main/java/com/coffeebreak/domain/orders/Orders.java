@@ -1,5 +1,6 @@
 package com.coffeebreak.domain.orders;
 
+import com.coffeebreak.domain.cart.OrderItem;
 import com.coffeebreak.domain.orders.dto.OrdesDTO;
 import com.coffeebreak.domain.product.Product;
 import com.coffeebreak.domain.ticket.Ticket;
@@ -8,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.coffeebreak.domain.orders.StatusOrders.ORDER_PLACED;
@@ -25,10 +27,9 @@ public class Orders {
     @ManyToOne
     private Ticket ticket;
 
-    @ManyToMany
-    private List<Product> product;
-
-    private List <Long> amount;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "order_id")
+    private List<OrderItem> items = new ArrayList<>();
 
     private String observation;
 
@@ -36,11 +37,10 @@ public class Orders {
     @Column(nullable = false)
     private StatusOrders statusOrders = ORDER_PLACED;
 
-    public Orders(OrdesDTO dto, Ticket ticket, List <Product> product) {
+    public Orders(OrdesDTO dto, Ticket ticket, List<OrderItem> items) {
         this.id = dto.id();
         this.ticket = ticket;
-        this.product = product;
-        this.amount = dto.amount();
+        this.items = items;
         this.observation = dto.observation();
         this.statusOrders = dto.statusOrders() != null ? dto.statusOrders() : ORDER_PLACED;
     }

@@ -1,23 +1,19 @@
 package com.coffeebreak.domain.orders;
 
+import com.coffeebreak.domain.cart.OrderItem;
 import com.coffeebreak.domain.orders.dto.OrdesDTO;
 import com.coffeebreak.domain.product.Product;
-import com.coffeebreak.domain.product.ProductRepository;
 import com.coffeebreak.domain.product.ProductService;
-import com.coffeebreak.domain.product.dto.ProductDTO;
 import com.coffeebreak.domain.ticket.Ticket;
-import com.coffeebreak.domain.ticket.TicketRepository;
 import com.coffeebreak.domain.ticket.TicketService;
-import com.coffeebreak.domain.ticket.TicketStatus;
 import com.coffeebreak.domain.ticket.dto.TicketDTO;
 import com.coffeebreak.exception.ProductNotFoundException;
-import com.coffeebreak.exception.TicketException;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrdersService {
@@ -29,7 +25,7 @@ public class OrdersService {
     ProductService productService;
 
     @Autowired
-    TicketService ticketService   ;
+    TicketService ticketService;
 
     public Orders save(OrdesDTO dto) {
         TicketDTO ticketDto = ticketService.findById(dto.ticketId());
@@ -37,43 +33,37 @@ public class OrdersService {
 
         ticketService.verifyTableIsOccupied(ticketDto);
 
-        List<Product> incomingProducts = dto.productIds().stream()
-                .map(productService::findById)
-                .map(Product::new)
-                .toList();
+        List<OrderItem> incomingOrderItems = dto.items().stream()
+                .map(itemDto -> {
+                    Product product = new Product(productService.findById(itemDto.product().id()));
+                    return new OrderItem(null, product, itemDto.quantity());
+                })
+                .collect(Collectors.toList());
 
         Optional<Orders> optionalOrders = ordesRepository.findByTicketId(dto.ticketId());
 
         if (optionalOrders.isPresent()) {
             Orders order = optionalOrders.get();
 
-
-            for (int i = 0; i < incomingProducts.size(); i++) {
-                Product incomingProduct = incomingProducts.get(i);
-                Long incomingQuantity = dto.amount().get(i);
-
-                int existingIndex = -1;
-                for (int j = 0; j < order.getProduct().size(); j++) {
-                    if (order.getProduct().get(j).getId().equals(incomingProduct.getId())) {
-                        existingIndex = j;
+            for (OrderItem incomingItem : incomingOrderItems) {
+                boolean found = false;
+                for (OrderItem existingItem : order.getItems()) {
+                    if (existingItem.getProduct().getId().equals(incomingItem.getProduct().getId())) {
+                        existingItem.setQuantity(existingItem.getQuantity() + incomingItem.getQuantity());
+                        found = true;
                         break;
                     }
                 }
-
-                if (existingIndex != -1) {
-
-                    Long updatedQuantity = order.getAmount().get(existingIndex) + incomingQuantity;
-                    order.getAmount().set(existingIndex, updatedQuantity);
-                } else {
-
-                    order.getProduct().add(incomingProduct);
-                    order.getAmount().add(incomingQuantity);
+                if (!found) {
+                    order.getItems().add(incomingItem);
                 }
             }
+            order.setObservation(dto.observation());
+            order.setStatusOrders(dto.statusOrders() != null ? dto.statusOrders() : order.getStatusOrders());
 
             return ordesRepository.save(order);
         } else {
-            Orders order = new Orders(dto, ticket, incomingProducts);
+            Orders order = new Orders(dto, ticket, incomingOrderItems);
             return ordesRepository.save(order);
         }
     }
@@ -92,18 +82,23 @@ public class OrdersService {
     }
 
     public OrdesDTO update(Long id, OrdesDTO dto){
-        TicketDTO ticket = ticketService.findById(dto.ticketId());
+        Orders existingOrder = ordesRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Comanda não encontrada"));
 
-        List<Product> products = dto.productIds().stream()
-                .map(productService::findById)
-                .map(Product::new)
-                .toList();
+        TicketDTO ticketDto = ticketService.findById(dto.ticketId());
+        Ticket ticket = new Ticket(ticketDto);
 
-        Orders existOrders = ordesRepository.findById(id)
-                        .orElseThrow(() -> new ProductNotFoundException("Comanda não encontrada"));
+        existingOrder.setTicket(ticket);
+        existingOrder.setObservation(dto.observation());
+        existingOrder.setStatusOrders(dto.statusOrders());
 
-        BeanUtils.copyProperties(dto, existOrders, "id");
-        return new OrdesDTO(ordesRepository.save(existOrders));
+        existingOrder.getItems().clear();
+        dto.items().forEach(itemDto -> {
+            Product product = new Product(productService.findById(itemDto.product().id()));
+            existingOrder.getItems().add(new OrderItem(null, product, itemDto.quantity()));
+        });
+
+        return new OrdesDTO(ordesRepository.save(existingOrder));
     }
 
     public void delete(Long id){
